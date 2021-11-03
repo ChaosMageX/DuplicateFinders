@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.28307.168
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScreenshotFinder", "ScreenshotFinder\ScreenshotFinder.csproj", "{F41DA8ED-18A6-4F09-87F8-FCFD53908140}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DuplicateScreenshotFinder", "ScreenshotFinder\DuplicateScreenshotFinder.csproj", "{F41DA8ED-18A6-4F09-87F8-FCFD53908140}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FindDuplicateScreenshots", "FindDuplicateScreenshots\FindDuplicateScreenshots.csproj", "{B3082A61-2FE4-499E-B894-C15CD90A343E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{F41DA8ED-18A6-4F09-87F8-FCFD53908140}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F41DA8ED-18A6-4F09-87F8-FCFD53908140}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F41DA8ED-18A6-4F09-87F8-FCFD53908140}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B3082A61-2FE4-499E-B894-C15CD90A343E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B3082A61-2FE4-499E-B894-C15CD90A343E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B3082A61-2FE4-499E-B894-C15CD90A343E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B3082A61-2FE4-499E-B894-C15CD90A343E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
