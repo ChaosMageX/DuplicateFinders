@@ -112,7 +112,7 @@ namespace ScreenshotFinder
                 {
                     mSeparators[i].Paused = bSearchPaused;
                 }
-                mPauseButton.Text = bSearchPaused ? "Play" : "Pause";
+                mPauseBTN.Text = bSearchPaused ? "Play" : "Pause";
             }
         }
 
@@ -176,8 +176,8 @@ namespace ScreenshotFinder
                 mBrowseBTN.Enabled = enabled;
                 mGroupByCMB.Enabled = enabled;
                 mThreadCountNUD.Enabled = enabled;
-                mPauseButton.Enabled = !enabled;
-                mStopButton.Enabled = !enabled;
+                mPauseBTN.Enabled = !enabled;
+                mStopBTN.Enabled = !enabled;
             }
             // Update Progress Bar and Message
             if (bRefreshProgressBar)

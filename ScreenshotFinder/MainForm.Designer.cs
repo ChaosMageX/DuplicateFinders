@@ -42,8 +42,8 @@
             this.mThreadCountNUD = new System.Windows.Forms.NumericUpDown();
             this.mOutputSplitCont = new System.Windows.Forms.SplitContainer();
             this.mFolderProgressTXT = new System.Windows.Forms.TextBox();
-            this.mPauseButton = new System.Windows.Forms.Button();
-            this.mStopButton = new System.Windows.Forms.Button();
+            this.mPauseBTN = new System.Windows.Forms.Button();
+            this.mStopBTN = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.mThreadCountNUD)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.mOutputSplitCont)).BeginInit();
             this.mOutputSplitCont.Panel1.SuspendLayout();
@@ -205,37 +205,37 @@
             this.mFolderProgressTXT.Size = new System.Drawing.Size(754, 205);
             this.mFolderProgressTXT.TabIndex = 0;
             // 
-            // mPauseButton
+            // mPauseBTN
             // 
-            this.mPauseButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.mPauseButton.Enabled = false;
-            this.mPauseButton.Location = new System.Drawing.Point(616, 39);
-            this.mPauseButton.Name = "mPauseButton";
-            this.mPauseButton.Size = new System.Drawing.Size(75, 23);
-            this.mPauseButton.TabIndex = 17;
-            this.mPauseButton.Text = "Pause";
-            this.mPauseButton.UseVisualStyleBackColor = true;
-            this.mPauseButton.Click += new System.EventHandler(this.PauseButtonClicked);
+            this.mPauseBTN.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.mPauseBTN.Enabled = false;
+            this.mPauseBTN.Location = new System.Drawing.Point(616, 39);
+            this.mPauseBTN.Name = "mPauseBTN";
+            this.mPauseBTN.Size = new System.Drawing.Size(75, 23);
+            this.mPauseBTN.TabIndex = 17;
+            this.mPauseBTN.Text = "Pause";
+            this.mPauseBTN.UseVisualStyleBackColor = true;
+            this.mPauseBTN.Click += new System.EventHandler(this.PauseButtonClicked);
             // 
-            // mStopButton
+            // mStopBTN
             // 
-            this.mStopButton.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.mStopButton.Enabled = false;
-            this.mStopButton.Location = new System.Drawing.Point(697, 39);
-            this.mStopButton.Name = "mStopButton";
-            this.mStopButton.Size = new System.Drawing.Size(75, 23);
-            this.mStopButton.TabIndex = 18;
-            this.mStopButton.Text = "Stop";
-            this.mStopButton.UseVisualStyleBackColor = true;
-            this.mStopButton.Click += new System.EventHandler(this.StopButtonClicked);
+            this.mStopBTN.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.mStopBTN.Enabled = false;
+            this.mStopBTN.Location = new System.Drawing.Point(697, 39);
+            this.mStopBTN.Name = "mStopBTN";
+            this.mStopBTN.Size = new System.Drawing.Size(75, 23);
+            this.mStopBTN.TabIndex = 18;
+            this.mStopBTN.Text = "Stop";
+            this.mStopBTN.UseVisualStyleBackColor = true;
+            this.mStopBTN.Click += new System.EventHandler(this.StopButtonClicked);
             // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(784, 561);
-            this.Controls.Add(this.mStopButton);
-            this.Controls.Add(this.mPauseButton);
+            this.Controls.Add(this.mStopBTN);
+            this.Controls.Add(this.mPauseBTN);
             this.Controls.Add(this.mOutputSplitCont);
             this.Controls.Add(this.mThreadCountNUD);
             this.Controls.Add(this.mThreadCountLBL);
@@ -278,8 +278,8 @@
         private System.Windows.Forms.NumericUpDown mThreadCountNUD;
         private System.Windows.Forms.SplitContainer mOutputSplitCont;
         private System.Windows.Forms.TextBox mFolderProgressTXT;
-        private System.Windows.Forms.Button mPauseButton;
-        private System.Windows.Forms.Button mStopButton;
+        private System.Windows.Forms.Button mPauseBTN;
+        private System.Windows.Forms.Button mStopBTN;
     }
 }
 
