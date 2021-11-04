@@ -385,13 +385,16 @@ namespace ScreenshotFinder
                 Thread.Sleep(1000);
             }
 
+            Separator sep;
             int dupCount = 0;
             long dupBytes = 0;
 
             for (i = 0; i < count; i++)
             {
-                dupCount += mSeparators[i].DuplicateCount;
-                dupBytes += mSeparators[i].DuplicateBytes;
+                sep = mSeparators[i];
+                dupCount += sep.DuplicateCount;
+                dupBytes += sep.DuplicateBytes;
+                sep.RestoreFolderProperties();
             }
 
             double percent = mTotalImageCount == 0 ? 1 : mTotalImageCount;

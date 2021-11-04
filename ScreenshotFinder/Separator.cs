@@ -322,6 +322,11 @@ namespace ScreenshotFinder
         private readonly DirectoryInfo mCurrentDir;
         private readonly DirectoryInfo mDuplicateDir;
 
+        private readonly FileAttributes mCurrDirAttr;
+        private readonly DateTime mCurrDirCTime;
+        private readonly DateTime mCurrDirMTime;
+        private readonly DateTime mCurrDirATime;
+
         private readonly int mImageThreadCount;
 
         private readonly string mImageGroupName;
@@ -340,6 +345,11 @@ namespace ScreenshotFinder
             int imgThreadCount, string imgGroupName, List<string> imgGroupPatterns)
         {
             mCurrentDir = currDir;
+
+            mCurrDirAttr = currDir.Attributes;
+            mCurrDirCTime = currDir.CreationTimeUtc;
+            mCurrDirMTime = currDir.LastWriteTimeUtc;
+            mCurrDirATime = currDir.LastAccessTimeUtc;
 
             string dupDirName = currDir.Name + DupDirSuffix;
             mDuplicateDir = new DirectoryInfo(Path.Combine(
@@ -383,6 +393,18 @@ namespace ScreenshotFinder
             mSearchStartTime = DateTime.MaxValue;
             mAvgCompTime = new TimeSpan(0L);
             mDuplicateCount = 0;
+        }
+        /// <summary>
+        /// Restores the folder attributes, modification time, access time 
+        /// and other properties of this instance's directory to what they 
+        /// were prior to removing any found duplicate images from them.
+        /// </summary>
+        public void RestoreFolderProperties()
+        {
+            mCurrentDir.Attributes = mCurrDirAttr;
+            mCurrentDir.CreationTimeUtc = mCurrDirCTime;
+            mCurrentDir.LastWriteTimeUtc = mCurrDirMTime;
+            mCurrentDir.LastAccessTimeUtc = mCurrDirATime;
         }
 
         #region Thread Control
