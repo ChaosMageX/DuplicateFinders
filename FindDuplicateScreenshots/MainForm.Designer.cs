@@ -40,6 +40,8 @@
             this.mThreadCountLBL = new System.Windows.Forms.Label();
             this.mGroupByCMB = new System.Windows.Forms.ComboBox();
             this.mGroupByLBL = new System.Windows.Forms.Label();
+            this.mPauseBTN = new System.Windows.Forms.Button();
+            this.mStopBTN = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.mThreadCountNUD)).BeginInit();
             this.SuspendLayout();
             // 
@@ -164,11 +166,37 @@
             this.mGroupByLBL.TabIndex = 16;
             this.mGroupByLBL.Text = "Group By:";
             // 
+            // mPauseBTN
+            // 
+            this.mPauseBTN.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.mPauseBTN.Enabled = false;
+            this.mPauseBTN.Location = new System.Drawing.Point(616, 38);
+            this.mPauseBTN.Name = "mPauseBTN";
+            this.mPauseBTN.Size = new System.Drawing.Size(75, 23);
+            this.mPauseBTN.TabIndex = 20;
+            this.mPauseBTN.Text = "Pause";
+            this.mPauseBTN.UseVisualStyleBackColor = true;
+            this.mPauseBTN.Click += new System.EventHandler(this.PauseButtonClicked);
+            // 
+            // mStopBTN
+            // 
+            this.mStopBTN.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.mStopBTN.Enabled = false;
+            this.mStopBTN.Location = new System.Drawing.Point(697, 38);
+            this.mStopBTN.Name = "mStopBTN";
+            this.mStopBTN.Size = new System.Drawing.Size(75, 23);
+            this.mStopBTN.TabIndex = 21;
+            this.mStopBTN.Text = "Stop";
+            this.mStopBTN.UseVisualStyleBackColor = true;
+            this.mStopBTN.Click += new System.EventHandler(this.StopButtonClicked);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(784, 361);
+            this.Controls.Add(this.mStopBTN);
+            this.Controls.Add(this.mPauseBTN);
             this.Controls.Add(this.mThreadCountNUD);
             this.Controls.Add(this.mThreadCountLBL);
             this.Controls.Add(this.mGroupByCMB);
@@ -202,6 +230,8 @@
         private System.Windows.Forms.Label mThreadCountLBL;
         private System.Windows.Forms.ComboBox mGroupByCMB;
         private System.Windows.Forms.Label mGroupByLBL;
+        private System.Windows.Forms.Button mPauseBTN;
+        private System.Windows.Forms.Button mStopBTN;
     }
 }
 

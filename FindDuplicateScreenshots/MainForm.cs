@@ -17,6 +17,8 @@ namespace FindDuplicateScreenshots
     {
         public const string TimePrefixFormat = "yyyy/MM/dd HH:mm:ss.fff: ";
 
+        public const string FileNameTimeFormat = "yyyy-MM-dd_HH-mm-ss";
+
         public const string DupDirSuffix = "-Duplicates";
 
         public const ThreadPriority DefaultPriority = ThreadPriority.Normal;
@@ -125,15 +127,16 @@ namespace FindDuplicateScreenshots
         private bool bFolderThreads = false;
 
         private StringBuilder mOutputBuilder;
-        private StringWriter mOutputWriter;
-        private bool bOutputUpdate;
+        private StringAndFileWriter mOutputWriter;
+        private int mOutputVersion;
 
         private Thread mSearchThread;
         private bool bCountRunning;
         private bool bSearchRunning;
+        private bool bSearchPaused = false;
 
         private bool bNeedsUpdate;
-        private bool bFormClosed = false;
+        private bool bSearchStopped = false;
 
         private DirectoryInfo mRootDir;
         private GroupImgBy mGroupBy;
@@ -159,8 +162,14 @@ namespace FindDuplicateScreenshots
         {
             InitializeComponent();
 
+            string logFilePath = "FindDups_"
+                + DateTime.Now.ToString(FileNameTimeFormat)
+                + "_Log.txt";
+            logFilePath = Path.Combine(Environment.CurrentDirectory, logFilePath);
+
             mOutputBuilder = new StringBuilder();
-            mOutputWriter = new StringWriter(mOutputBuilder);
+            mOutputWriter = new StringAndFileWriter(mOutputBuilder, logFilePath);
+            mOutputVersion = mOutputWriter.GetVersion();
             Console.SetOut(mOutputWriter);
 
             mSearchThread = new Thread(SearchForDuplicateImages)
@@ -184,14 +193,18 @@ namespace FindDuplicateScreenshots
         {
             Console.Write(DateTime.Now.ToString(TimePrefixFormat));
             Console.WriteLine(format, arg0);
-            bOutputUpdate = true;
         }
 
         private void WriteLog(string format, object arg0, object arg1)
         {
             Console.Write(DateTime.Now.ToString(TimePrefixFormat));
             Console.WriteLine(format, arg0, arg1);
-            bOutputUpdate = true;
+        }
+
+        private void WriteLog(string format, params object[] args)
+        {
+            Console.Write(DateTime.Now.ToString(TimePrefixFormat));
+            Console.WriteLine(format, args);
         }
 
         private void StartButtonClicked(object sender, EventArgs e)
@@ -215,16 +228,46 @@ namespace FindDuplicateScreenshots
             }
         }
 
+        private void PauseButtonClicked(object sender, EventArgs e)
+        {
+            if (bSearchRunning)
+            {
+                bSearchPaused = !bSearchPaused;
+                mPauseBTN.Text = bSearchPaused ? "Play" : "Pause";
+            }
+        }
+
+        private void StopButtonClicked(object sender, EventArgs e)
+        {
+            bSearchStopped = true;
+        }
+
+        private void GroupByIndexChanged(object sender, EventArgs e)
+        {
+            mGroupBy = (GroupImgBy)mGroupByCMB.SelectedIndex;
+        }
+
+        private void ThreadCountValueChanged(object sender, EventArgs e)
+        {
+            mImageThreadCount = (int)mThreadCountNUD.Value;
+        }
+
+        private void MainFormClosed(object sender, FormClosedEventArgs e)
+        {
+            bSearchStopped = true;
+        }
+
         private void UpdateTimerTick(object sender, EventArgs e)
         {
-            if (bOutputUpdate)
+            int version = mOutputWriter.GetVersion();
+            if (version != mOutputVersion)
             {
                 try
                 {
                     mOutputTXT.Text = mOutputBuilder.ToString();
                     mOutputTXT.Select(mOutputTXT.TextLength, 0);
                     mOutputTXT.ScrollToCaret();
-                    bOutputUpdate = false;
+                    mOutputVersion = version;
                 }
                 catch (Exception)
                 {
@@ -240,6 +283,8 @@ namespace FindDuplicateScreenshots
                 mBrowseBTN.Enabled = enabled;
                 mGroupByCMB.Enabled = enabled;
                 mThreadCountNUD.Enabled = enabled;
+                mPauseBTN.Enabled = !enabled;
+                mStopBTN.Enabled = !enabled;
                 mMainProgressBAR.Maximum = mTotalImageCount;
                 bNeedsUpdate = false;
             }
@@ -297,21 +342,6 @@ namespace FindDuplicateScreenshots
             }
         }
 
-        private void GroupByIndexChanged(object sender, EventArgs e)
-        {
-            mGroupBy = (GroupImgBy)mGroupByCMB.SelectedIndex;
-        }
-
-        private void ThreadCountValueChanged(object sender, EventArgs e)
-        {
-            mImageThreadCount = (int)mThreadCountNUD.Value;
-        }
-
-        private void MainFormClosed(object sender, FormClosedEventArgs e)
-        {
-            bFormClosed = true;
-        }
-
         private void UpdateDirectoryDisplay()
         {
             mDirectoryTXT.Text = mRootDir.FullName;
@@ -360,7 +390,6 @@ namespace FindDuplicateScreenshots
                     DupDirSuffix);
                 Console.Write(DateTime.Now.ToString(TimePrefixFormat));
                 Console.WriteLine("Please select a different Directory to search.");
-                bOutputUpdate = true;
             }
             bSearchRunning = false;
             bNeedsUpdate = true;
@@ -368,7 +397,7 @@ namespace FindDuplicateScreenshots
 
         private bool CountTotalImages(DirectoryInfo currDir)
         {
-            if (bFormClosed)
+            if (bSearchStopped)
             {
                 return false;
             }
@@ -392,11 +421,11 @@ namespace FindDuplicateScreenshots
 
                     mTotalImageCount += fCount;
 
-                    if (bFormClosed) break;
+                    if (bSearchStopped) break;
                 }
-                if (bFormClosed) break;
+                if (bSearchStopped) break;
             }
-            if (bFormClosed)
+            if (bSearchStopped)
             {
                 return false;
             }
@@ -413,7 +442,7 @@ namespace FindDuplicateScreenshots
 
         private bool SequesterDuplicates(DirectoryInfo currDir, DirectoryInfo parentDupDir)
         {
-            if (bFormClosed)
+            if (bSearchStopped)
             {
                 return false;
             }
@@ -448,7 +477,7 @@ namespace FindDuplicateScreenshots
 
             currDir.LastWriteTimeUtc = mTime;
 
-            if (bFormClosed)
+            if (bSearchStopped)
             {
                 return false;
             }
@@ -479,11 +508,11 @@ namespace FindDuplicateScreenshots
                     files = currDir.GetFiles(pattern,
                         SearchOption.TopDirectoryOnly);
                     fileList.AddRange(files);
-                    if (bFormClosed) break;
+                    if (bSearchStopped) break;
                 }
-                if (bFormClosed) break;
+                if (bSearchStopped) break;
             }
-            if (!bFormClosed)
+            if (!bSearchStopped)
             {
                 dupCount = SequesterCore(currDir, dupDir, fileList.ToArray());
 
@@ -509,9 +538,9 @@ namespace FindDuplicateScreenshots
                     files = currDir.GetFiles(pattern,
                         SearchOption.TopDirectoryOnly);
                     fileList.AddRange(files);
-                    if (bFormClosed) break;
+                    if (bSearchStopped) break;
                 }
-                if (bFormClosed) break;
+                if (bSearchStopped) break;
 
                 dupCount = SequesterCore(currDir, dupDir, fileList.ToArray());
 
@@ -535,13 +564,13 @@ namespace FindDuplicateScreenshots
                     WriteLog("Finding {0} Duplicates...", pattern);
                     files = currDir.GetFiles(pattern,
                         SearchOption.TopDirectoryOnly);
-                    if (bFormClosed) break;
+                    if (bSearchStopped) break;
 
                     dupCount = SequesterCore(currDir, dupDir, files);
 
                     WriteLog("Found {0} {1} Duplicates!", dupCount, pattern);
                 }
-                if (bFormClosed) break;
+                if (bSearchStopped) break;
             }
         }
 
@@ -560,51 +589,91 @@ namespace FindDuplicateScreenshots
             FileAttributes attr;
             DateTime cTime, mTime, aTime;
 
+            FileAttributes currDirAttr = currDir.Attributes;
+            DateTime currDirCTime = currDir.CreationTimeUtc;
+            DateTime currDirMTime = currDir.LastWriteTimeUtc;
+            DateTime currDirATime = currDir.LastAccessTimeUtc;
+
+            FileInfo file;
             DateTime startTime;
-            int k, dupCount = 0;
-            Bitmap currPic, lastPic;
-            FileInfo file = files[0];
-            lastPic = new Bitmap(file.FullName);
-            for (k = 1; !bFormClosed && k < fileCount; k++)
+            int attempts, dupCount = 0;
+            Bitmap currPic, lastPic = null;
+            for (int k = 0; !bSearchStopped && k < fileCount; k++)
             {
+                while (bSearchPaused)
+                {
+                    Thread.Sleep(1000);
+                }
                 file = files[k];
                 startTime = DateTime.Now;
-                currPic = new Bitmap(file.FullName);
-                if (ImagesDifferUnsafe(currPic, lastPic))
+                attempts = 0;
+                currPic = null;
+                while (currPic == null && attempts < 3)
                 {
-                    lastPic.Dispose();
-                    lastPic = currPic;
+                    try { currPic = new Bitmap(file.FullName); }
+                    catch (Exception ex)
+                    {
+                        attempts++;
+                        WriteLog("Error opening file \"{0}\""
+                            + "\r\nAttempt {1} : {2} : {3}",
+                            file.FullName, attempts,
+                            ex.GetType().Name, ex.Message);
+                        Thread.Sleep(10);
+                    }
                 }
-                else
+                if (lastPic == null)
                 {
-                    currPic.Dispose();
-                    mDuplicateCount++;
-                    mCurrentDupCount++;
-                    dupCount++;
+                    // It's the very first image in the folder.
+                    // Set lastPic and move on to the next image.
+                    lastPic = currPic;
 
-                    // Preserve file info before moving.
-                    attr = file.Attributes;
-                    cTime = file.CreationTimeUtc;
-                    mTime = file.LastWriteTimeUtc;
-                    aTime = file.LastAccessTimeUtc;
+                    // If the first image didn't successfully open, 
+                    // lastPic will still be null on the next loop,
+                    // so it will keep looping to this block until it 
+                    // successfully opens an image for lastPic, and then 
+                    // successfully opens another image for currPic.
+                }
+                else if (currPic != null)
+                {
+                    if (ImagesDifferUnsafe(currPic, lastPic))
+                    {
+                        lastPic.Dispose();
+                        lastPic = currPic;
+                    }
+                    else
+                    {
+                        currPic.Dispose();
+                        mDuplicateCount++;
+                        mCurrentDupCount++;
+                        dupCount++;
 
-                    // Move the duplicate image file.
-                    file.MoveTo(Path.Combine(
-                        dupDir.FullName, file.Name));
+                        // Preserve file info before moving.
+                        attr = file.Attributes;
+                        cTime = file.CreationTimeUtc;
+                        mTime = file.LastWriteTimeUtc;
+                        aTime = file.LastAccessTimeUtc;
 
-                    // Apply saved file info after moving.
-                    file.Attributes = attr;
-                    file.CreationTimeUtc = cTime;
-                    file.LastWriteTimeUtc = mTime;
-                    file.LastAccessTimeUtc = aTime;
+                        // Move the duplicate image file.
+                        file.MoveTo(Path.Combine(
+                            dupDir.FullName, file.Name));
+
+                        // Apply saved file info after moving.
+                        file.Attributes = attr;
+                        file.CreationTimeUtc = cTime;
+                        file.LastWriteTimeUtc = mTime;
+                        file.LastAccessTimeUtc = aTime;
+                    }
                 }
                 mImgCompTime = DateTime.Now - startTime;
                 mCurrentProgress++;
                 mCurrentSearchIndex++;
             }
-            lastPic.Dispose();
-            mCurrentProgress++;
-            mCurrentSearchIndex++;
+            if (lastPic != null)
+                lastPic.Dispose();
+            currDir.Attributes = currDirAttr;
+            currDir.CreationTimeUtc = currDirCTime;
+            currDir.LastWriteTimeUtc = currDirMTime;
+            currDir.LastAccessTimeUtc = currDirATime;
             return dupCount;
         }
 
