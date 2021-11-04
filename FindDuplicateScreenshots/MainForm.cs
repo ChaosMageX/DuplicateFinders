@@ -88,43 +88,41 @@ namespace FindDuplicateScreenshots
             sSearchPatterns[8] = new string[] { "*.wmf" };/* */
         }
 
-        private class TextBoxWriter : TextWriter
+        private const double cKBsize = 1024.0;
+        private const double cMBsize = 1048576.0;
+        private const double cGBsize = 1073741824.0;
+        private const double cTBsize = 1099511627776.0;
+        private const double cPBsize = 1125899906842624.0;
+        private const long cKBcutoff = 1000L;
+        private const long cMBcutoff = 1024000L;
+        private const long cGBcutoff = 1048576000L;
+        private const long cTBcutoff = 1073741824000L;
+        private const long cPBcutoff = 1099511627776000L;
+
+        public static string GetSizeString(long byteCount)
         {
-            private TextBox mTextBox;
-
-            public TextBoxWriter(TextBox textBox)
+            if (byteCount < cKBcutoff)
             {
-                mTextBox = textBox;
+                return byteCount.ToString("N0") + " B";
             }
-
-            public TextBoxWriter(TextBox textBox, IFormatProvider formatProvider)
-                : base(formatProvider)
+            if (byteCount < cMBcutoff)
             {
-                mTextBox = textBox;
+                return (byteCount / cKBsize).ToString("G3") + " KB";
             }
-
-            private void ScrollToBottom()
+            if (byteCount < cGBcutoff)
             {
-                mTextBox.Select(mTextBox.TextLength, 0);
-                mTextBox.ScrollToCaret();
+                return (byteCount / cMBsize).ToString("G3") + " MB";
             }
-
-            public override void Write(char value)
+            if (byteCount < cTBcutoff)
             {
-                mTextBox.Text += value;
-                //ScrollToBottom();
+                return (byteCount / cGBsize).ToString("G3") + " GB";
             }
-
-            public override void Write(string value)
+            if (byteCount < cPBcutoff)
             {
-                mTextBox.Text += value;
-                //ScrollToBottom();
+                return (byteCount / cTBsize).ToString("G3") + " TB";
             }
-
-            public override Encoding Encoding => Encoding.UTF8;
+            return (byteCount / cPBsize).ToString("G3") + " PB";
         }
-
-        private bool bFolderThreads = false;
 
         private StringBuilder mOutputBuilder;
         private StringAndFileWriter mOutputWriter;
@@ -148,11 +146,13 @@ namespace FindDuplicateScreenshots
         private int mCurrentProgress;
         // Total number of duplicate images found.
         private int mDuplicateCount;
+        private long mDuplicateBytes;
 
         private string mCurrentSearchFolder = "";
         private int mCurrentSearchIndex = 0;
         private int mCurrentSearchCount = 0;
         private int mCurrentDupCount = 0;
+        private long mCurrentDupBytes = 0L;
 
         private DateTime mSearchStartTime;
         private TimeSpan mImgCompTime;
@@ -294,6 +294,7 @@ namespace FindDuplicateScreenshots
 
                 TimeSpan ts;
                 double percent;
+                int progress = mCurrentProgress == 0 ? 1 : mCurrentProgress;
                 StringBuilder sb = new StringBuilder();
                 sb.Append("Overall : ");
                 percent = (double)mCurrentProgress / mTotalImageCount;
@@ -305,7 +306,15 @@ namespace FindDuplicateScreenshots
                 sb.Append(" )");
                 sb.Append(" | Dups: ");
                 sb.Append(mDuplicateCount);
-                sb.Append(" | In Folder ");
+                sb.Append(" ( ");
+                sb.Append(GetSizeString(mDuplicateBytes));
+                sb.Append(" ) ( ");
+                percent = (double)mDuplicateCount / progress;
+                sb.Append(percent.ToString("P"));
+                sb.Append(" / ");
+                percent = (double)mDuplicateCount / mTotalImageCount;
+                sb.Append(percent.ToString("P"));
+                sb.Append(" ) | In Folder ");
                 sb.Append(mCurrentSearchFolder);
                 sb.Append(" : ");
                 percent = (double)mCurrentSearchIndex / mCurrentSearchCount;
@@ -317,7 +326,16 @@ namespace FindDuplicateScreenshots
                 sb.Append(" )");
                 sb.Append(" | Dups: ");
                 sb.Append(mCurrentDupCount);
-                sb.Append(" | Elapsed: ");
+                sb.Append(" ( ");
+                sb.Append(GetSizeString(mCurrentDupBytes));
+                sb.Append(" ) ( ");
+                progress = mCurrentSearchIndex == 0 ? 1 : mCurrentSearchIndex;
+                percent = (double)mCurrentDupCount / progress;
+                sb.Append(percent.ToString("P"));
+                sb.Append(" / ");
+                percent = (double)mCurrentDupCount / mCurrentSearchCount;
+                sb.Append(percent.ToString("P"));
+                sb.Append(" ) | Elapsed: ");
                 ts = DateTime.Now - mSearchStartTime;
                 sb.Append(ts.ToString(@"d\.hh\:mm\:ss"));
                 sb.Append(" | Remaining: ");
@@ -462,6 +480,7 @@ namespace FindDuplicateScreenshots
             DateTime mTime = currDir.LastWriteTimeUtc;
 
             mDuplicateCount = 0;
+            mDuplicateBytes = 0L;
             switch (mGroupBy)
             {
                 case GroupImgBy.All:
@@ -585,6 +604,7 @@ namespace FindDuplicateScreenshots
             mCurrentSearchCount = fileCount;
             mCurrentSearchIndex = 0;
             mCurrentDupCount = 0;
+            mCurrentDupBytes = 0L;
 
             FileAttributes attr;
             DateTime cTime, mTime, aTime;
@@ -644,7 +664,9 @@ namespace FindDuplicateScreenshots
                     {
                         currPic.Dispose();
                         mDuplicateCount++;
+                        mDuplicateBytes += file.Length;
                         mCurrentDupCount++;
+                        mCurrentDupBytes += file.Length;
                         dupCount++;
 
                         // Preserve file info before moving.
