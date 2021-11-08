@@ -22,8 +22,6 @@ namespace ScreenshotFinder
 
         public const string AllImagesGroupName = "All";
 
-        public const ThreadPriority DefaultPriority = ThreadPriority.Normal;
-
         public enum GroupImgBy
         {
             All,
@@ -198,8 +196,9 @@ namespace ScreenshotFinder
             }
             sep = new Separator(currDir, parentDupDir,
                 imgThreadCount, AllImagesGroupName, imgGroupPatterns);
-            WriteLog("Found {0:N0} Screenshots!", 
-                sep.mImageFiles.Length);
+            WriteLog("Found {0:N0} ({1}) Screenshots!", 
+                sep.mImageFiles.Length, 
+                GetSizeString(sep.mImageFileBytes));
             seps.Add(sep);
 
             string dupDirName = currDir.Name + DupDirSuffix;
@@ -245,8 +244,9 @@ namespace ScreenshotFinder
                 }
                 sep = new Separator(currDir, parentDupDir,
                     imgThreadCount, groupName, imgGroupPatterns);
-                WriteLog("Found {0:N0} {1} Screenshots!", 
-                    sep.mImageFiles.Length, groupName);
+                WriteLog("Found {0:N0} {1} ({2}) Screenshots!", 
+                    sep.mImageFiles.Length, groupName, 
+                    GetSizeString(sep.mImageFileBytes));
                 seps.Add(sep);
             }
             if (!CreationAllowed)
@@ -294,8 +294,9 @@ namespace ScreenshotFinder
                     imgGroupPatterns = new List<string>(1) { pattern };
                     sep = new Separator(currDir, parentDupDir,
                         imgThreadCount, pattern, imgGroupPatterns);
-                    WriteLog("Found {0:N0} {1} Screenshots!",
-                        sep.mImageFiles.Length, pattern);
+                    WriteLog("Found {0:N0} {1} ({2}) Screenshots!",
+                        sep.mImageFiles.Length, pattern, 
+                        GetSizeString(sep.mImageFileBytes));
                     seps.Add(sep);
                 }
             }
@@ -331,8 +332,10 @@ namespace ScreenshotFinder
 
         private readonly string mImageGroupName;
         private readonly FileInfo[] mImageFiles;
+        private readonly long mImageFileBytes;
 
         private readonly Thread mComputeThread;
+        private ThreadPriority mComputePriority;
         private bool bAllDone;
         private bool bPaused;
         private int mSearchIndex;
@@ -379,15 +382,20 @@ namespace ScreenshotFinder
                     SearchOption.TopDirectoryOnly);
             }
 
-            mComputeThread = new Thread(Compute)
+            int count = mImageFiles == null ? 0 : mImageFiles.Length;
+            mImageFileBytes = 0L;
+            for (int i = 0; i < count; i++)
             {
-                Priority = DefaultPriority
-            };
+                mImageFileBytes += mImageFiles[i].Length;
+            }
+
+            mComputeThread = new Thread(Compute);
+            mComputePriority = ThreadPriority.Normal;
             // If there are not enough image files to compare, 
             // there's no point in running the thread.
             // Avoid calling Thread.Start() if it leads nowhere. 
             // Otherwise, it can really bog down the app at startup.
-            bAllDone = mImageFiles == null || mImageFiles.Length < 2;
+            bAllDone = count < 2;
             bPaused = false;
             mSearchIndex = 0;
             mSearchStartTime = DateTime.MaxValue;
@@ -438,11 +446,26 @@ namespace ScreenshotFinder
         {
             bAllDone = true;
         }
+        /// <summary>
+        /// Priority of the internal image comparison thread.
+        /// </summary>
+        public ThreadPriority Priority
+        {
+            get { return mComputePriority; }
+            set
+            {
+                if (!bAllDone)
+                {
+                    mComputePriority = value;
+                    mComputeThread.Priority = value;
+                }
+            }
+        }
         #endregion
 
         #region Properties
         /// <summary>
-        /// The current index of image being checked if it's a duplicate.
+        /// The current index of the image being checked if it's a duplicate.
         /// </summary>
         public int SearchIndex => mSearchIndex;
         /// <summary>
@@ -466,6 +489,11 @@ namespace ScreenshotFinder
             }
         }
         /// <summary>
+        /// The total size, in bytes, of all the image files 
+        /// being compared for duplicates.
+        /// </summary>
+        public long SearchBytes => mImageFileBytes;
+        /// <summary>
         /// Average time spent comparing two image files 
         /// to see if one is a duplicate of the other.
         /// </summary>
@@ -479,55 +507,6 @@ namespace ScreenshotFinder
         /// </summary>
         public long DuplicateBytes => mDuplicateBytes;
         #endregion
-
-        public string AppendDisplayString(StringBuilder sb,
-            bool printRunTime, bool printDupCount)
-        {
-            if (sb == null)
-                throw new ArgumentNullException("sb");
-            sb.Append(mCurrentDir.Name);
-            sb.Append(" : ");
-            sb.Append(mImageGroupName);
-            sb.Append(" : ");
-            int searchCount = mImageFiles == null ? 0 : mImageFiles.Length;
-            double percent = searchCount == 0 
-                ? 0.0 : (double)mSearchIndex / searchCount;
-            sb.Append(percent.ToString("P"));
-            sb.Append(" ( ");
-            sb.Append(mSearchIndex.ToString("N0"));
-            sb.Append(" / ");
-            sb.Append(searchCount.ToString("N0"));
-            sb.Append(" )");
-            if (printDupCount)
-            {
-                sb.Append(" | Dups: ");
-                sb.Append(mDuplicateCount.ToString("N0"));
-                sb.Append(" ( ");
-                sb.Append(GetSizeString(mDuplicateBytes));
-                sb.Append(" ) ( ");
-                percent = mSearchIndex == 0 
-                    ? 0.0 : (double)mDuplicateCount / mSearchIndex;
-                sb.Append(percent.ToString("P"));
-                sb.Append(" / ");
-                percent = (double)mDuplicateCount / searchCount;
-                sb.Append(percent.ToString("P"));
-                sb.Append(" ) ");
-            }
-            if (printRunTime)
-            {
-                sb.Append(" | Elapsed: ");
-                TimeSpan ts = DateTime.Now - mSearchStartTime;
-                sb.Append(ts.ToString(ElapsedTimeFormat));
-                sb.Append(" | Remaining: ");
-                int diff = searchCount - mSearchIndex;
-                ts = new TimeSpan(diff * mAvgCompTime.Ticks);
-                sb.Append(ts.ToString(ElapsedTimeFormat));
-            }
-            sb.Append(" | Avg: ");
-            sb.Append(mAvgCompTime.ToString(AverageTimeFormat));
-            sb.Append(" s / Img");
-            return sb.ToString();
-        }
 
         private const double cKBsize = 1024.0;
         private const double cMBsize = 1048576.0;
@@ -565,6 +544,57 @@ namespace ScreenshotFinder
             return (byteCount / cPBsize).ToString("G3") + " PB";
         }
 
+        public string AppendDisplayString(StringBuilder sb,
+            bool printRunTime, bool printDupCount)
+        {
+            if (sb == null)
+                throw new ArgumentNullException("sb");
+            sb.Append(mCurrentDir.Name);
+            sb.Append(" : ");
+            sb.Append(mImageGroupName);
+            sb.Append(" : ");
+            int searchCount = mImageFiles == null ? 0 : mImageFiles.Length;
+            double percent = searchCount == 0 
+                ? 0.0 : (double)mSearchIndex / searchCount;
+            sb.Append(percent.ToString("P"));
+            sb.Append(" ( ");
+            sb.Append(mSearchIndex.ToString("N0"));
+            sb.Append(" / ");
+            sb.Append(searchCount.ToString("N0"));
+            sb.Append(" )");
+            if (printDupCount)
+            {
+                sb.Append(" | Dups: ");
+                sb.Append(mDuplicateCount.ToString("N0"));
+                sb.Append(" ( ");
+                sb.Append(GetSizeString(mDuplicateBytes));
+                sb.Append(" / ");
+                sb.Append(GetSizeString(mImageFileBytes));
+                sb.Append(" ) ( ");
+                percent = mSearchIndex == 0 
+                    ? 0.0 : (double)mDuplicateCount / mSearchIndex;
+                sb.Append(percent.ToString("P"));
+                sb.Append(" / ");
+                percent = (double)mDuplicateCount / searchCount;
+                sb.Append(percent.ToString("P"));
+                sb.Append(" ) ");
+            }
+            if (printRunTime)
+            {
+                sb.Append(" | Elapsed: ");
+                TimeSpan ts = DateTime.Now - mSearchStartTime;
+                sb.Append(ts.ToString(ElapsedTimeFormat));
+                sb.Append(" | Remaining: ");
+                int diff = searchCount - mSearchIndex;
+                ts = new TimeSpan(diff * mAvgCompTime.Ticks);
+                sb.Append(ts.ToString(ElapsedTimeFormat));
+            }
+            sb.Append(" | Avg: ");
+            sb.Append(mAvgCompTime.ToString(AverageTimeFormat));
+            sb.Append(" s / Img");
+            return sb.ToString();
+        }
+
         private void WriteLogCloser()
         {
             int count = mImageFiles == null ? 0 : mImageFiles.Length;
@@ -574,20 +604,24 @@ namespace ScreenshotFinder
             percentSearch = mDuplicateCount / percentSearch;
             if (mImageGroupName == AllImagesGroupName)
             {
-                WriteLog("Found {0:N0} Duplicates ( {1} ) " 
-                    + "out of {2:N0} / {3:N0} Images ( {4:P} / {5:P} ) in {6}.",
+                WriteLog("Found {0:N0} Duplicates ({1}) " 
+                    + "out of {2:N0} / {3:N0} Images ({4}) ( {5:P} / {6:P} ) in {7}.",
                     mDuplicateCount,
                     GetSizeString(mDuplicateBytes), 
-                    mSearchIndex, count, percentSearch, percentTotal, 
+                    mSearchIndex, count, 
+                    GetSizeString(mImageFileBytes),
+                    percentSearch, percentTotal, 
                     mCurrentDir.Name);
             }
             else
             {
-                WriteLog("Found {0:N0} {1} Duplicates ( {2} ) " 
-                    + "out of {3:N0} / {4:N0} {1} Images ( {5:P} / {6:P} ) in {7}.",
+                WriteLog("Found {0:N0} {1} Duplicates ({2}) " 
+                    + "out of {3:N0} / {4:N0} {1} Images ({5}) ( {6:P} / {7:P} ) in {8}.",
                     mDuplicateCount, mImageGroupName,
                     GetSizeString(mDuplicateBytes), 
-                    mSearchIndex, count, percentSearch, percentTotal, 
+                    mSearchIndex, count, 
+                    GetSizeString(mImageFileBytes), 
+                    percentSearch, percentTotal, 
                     mCurrentDir.Name);
             }
         }
@@ -752,7 +786,8 @@ namespace ScreenshotFinder
                         count++;
                         mod--;
                     }
-                    fractals[i] = new FractalSafe(lastScan, currScan, start, count);
+                    fractals[i] = new FractalSafe(lastScan, currScan, 
+                        start, count, mComputePriority);
                     start += count;
                 }
                 bool allDone = false;
@@ -795,7 +830,8 @@ namespace ScreenshotFinder
             public bool Done;
             public bool Different;
 
-            public FractalSafe(byte[] lastScan, byte[] currScan, int start, int count)
+            public FractalSafe(byte[] lastScan, byte[] currScan, 
+                int start, int count, ThreadPriority priority)
             {
                 mLastScan = lastScan;
                 mCurrScan = currScan;
@@ -806,7 +842,7 @@ namespace ScreenshotFinder
                 Different = false;
                 mThread = new Thread(Compute)
                 {
-                    Priority = DefaultPriority
+                    Priority = priority
                 };
                 mThread.Start();
             }
@@ -889,7 +925,8 @@ namespace ScreenshotFinder
                         count++;
                         mod--;
                     }
-                    fractals[i] = new FractalUnsafe(lastScan, currScan, start, count);
+                    fractals[i] = new FractalUnsafe(lastScan, currScan, 
+                        start, count, mComputePriority);
                     start += count;
                 }
                 bool allDone = false;
@@ -932,7 +969,8 @@ namespace ScreenshotFinder
             public bool Done;
             public bool Different;
 
-            public FractalUnsafe(byte* lastScan, byte* currScan, int start, int count)
+            public FractalUnsafe(byte* lastScan, byte* currScan, 
+                int start, int count, ThreadPriority priority)
             {
                 mLastScan = lastScan;
                 mCurrScan = currScan;
@@ -943,7 +981,7 @@ namespace ScreenshotFinder
                 Different = false;
                 mThread = new Thread(Compute)
                 {
-                    Priority = DefaultPriority
+                    Priority = priority
                 };
                 mThread.Start();
             }

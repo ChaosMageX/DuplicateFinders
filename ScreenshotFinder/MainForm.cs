@@ -18,6 +18,7 @@ namespace ScreenshotFinder
         private int mOutputVersion;
 
         private Thread mSearchThread;
+        private ThreadPriority mSearchPriority;
         private bool bSearchRunning;
         private bool bSearchPaused;
 
@@ -27,6 +28,7 @@ namespace ScreenshotFinder
 
         private Separator[] mSeparators;
         private int mTotalImageCount;
+        private long mTotalImageBytes;
         private bool bRefreshProgressBar;
         private DateTime mSearchStartTime;
         private DateTime mLastTickTime;
@@ -47,11 +49,16 @@ namespace ScreenshotFinder
             mOutputVersion = mOutputWriter.GetVersion();
             Console.SetOut(mOutputWriter);
 
-            mSearchThread = new Thread(StartSearch)
-            {
-                Priority = Separator.DefaultPriority
-            };
+            mSearchThread = new Thread(StartSearch);
+            mSearchPriority = ThreadPriority.Normal;
             bSearchRunning = false;
+
+            ComboBox.ObjectCollection items = mThreadPriorityCMB.Items;
+            items.Clear();
+            items.Add("Lower");
+            items.Add("Normal");
+            items.Add("Higher");
+            mThreadPriorityCMB.SelectedIndex = 1;
 
             mRootDir = new DirectoryInfo(Environment.CurrentDirectory);
             UpdateDirectoryDisplay();
@@ -139,6 +146,32 @@ namespace ScreenshotFinder
             mImageThreadCount = (int)mThreadCountNUD.Value;
         }
 
+        private void ThreadPriorityIndexChanged(object sender, EventArgs e)
+        {
+            switch (mThreadPriorityCMB.SelectedIndex)
+            {
+                case 0:
+                    mSearchPriority = ThreadPriority.BelowNormal;
+                    break;
+                case 1:
+                    mSearchPriority = ThreadPriority.Normal;
+                    break;
+                case 2:
+                    mSearchPriority = ThreadPriority.AboveNormal;
+                    break;
+            }
+            int count = mSeparators == null ? 0 : mSeparators.Length;
+            for (int i = 0; i < count; i++)
+            {
+                mSeparators[i].Priority = mSearchPriority;
+            }
+        }
+
+        private void MainForm_Load(object sender, EventArgs e)
+        {
+
+        }
+
         private void MainFormClosing(object sender, FormClosingEventArgs e)
         {
 
@@ -199,6 +232,7 @@ namespace ScreenshotFinder
                 long avgCompTicks = 0L;
                 int avgSearchIndex = 0;
                 int avgSearchCount = 0;
+                long avgSearchBytes = 0L;
                 int avgDuplicates = 0;
                 long avgDupBytes = 0L;
                 double percent = 0.0;
@@ -218,6 +252,7 @@ namespace ScreenshotFinder
                         avgCompTicks += sep.AverageCompareTime.Ticks;
                         avgSearchIndex += sep.SearchIndex;
                         avgSearchCount += sep.SearchCount;
+                        avgSearchBytes += sep.SearchBytes;
                         avgDuplicates += sep.DuplicateCount;
                         avgDupBytes += sep.DuplicateBytes;
                         percent += sep.SearchFraction;
@@ -232,6 +267,7 @@ namespace ScreenshotFinder
                 avgCompTicks /= runningCount;
                 avgSearchIndex /= runningCount;
                 avgSearchCount /= runningCount;
+                avgSearchBytes /= runningCount;
                 avgDuplicates /= runningCount;
                 avgDupBytes /= runningCount;
                 percent /= runningCount;
@@ -247,6 +283,8 @@ namespace ScreenshotFinder
                 sb.Append(avgDuplicates.ToString("N0"));
                 sb.Append(" ( ");
                 sb.Append(Separator.GetSizeString(avgDupBytes));
+                sb.Append(" / ");
+                sb.Append(Separator.GetSizeString(avgSearchBytes));
                 sb.Append(" ) ( ");
                 percent = avgSearchIndex == 0 
                     ? 0.0 : (double)avgDuplicates / avgSearchIndex;
@@ -285,6 +323,8 @@ namespace ScreenshotFinder
                 sb.Append(dupCount.ToString("N0"));
                 sb.Append(" ( ");
                 sb.Append(Separator.GetSizeString(dupBytes));
+                sb.Append(" / ");
+                sb.Append(Separator.GetSizeString(mTotalImageBytes));
                 sb.Append(" ) ( ");
                 percent = currentProgress == 0 
                     ? 0.0 : (double)dupCount / currentProgress;
@@ -341,10 +381,13 @@ namespace ScreenshotFinder
 
             bSearchRunning = true;
 
+            Separator sep;
             int i, count = 0;
 
             mTotalImageCount = 0;
+            mTotalImageBytes = 0L;
             bRefreshProgressBar = true;
+            Separator.CreationAllowed = true;
 
             mSeparators = Separator.CreateSeparators(
                 mRootDir, mImageThreadCount, mGroupBy);
@@ -353,11 +396,15 @@ namespace ScreenshotFinder
 
             for (i = 0; i < count; i++)
             {
-                mTotalImageCount += mSeparators[i].SearchCount;
+                sep = mSeparators[i];
+                sep.Priority = mSearchPriority;
+                mTotalImageCount += sep.SearchCount;
+                mTotalImageBytes += sep.SearchBytes;
             }
             bRefreshProgressBar = true;
 
-            Separator.WriteLog("Found {0:N0} Screenshots in total.", mTotalImageCount);
+            Separator.WriteLog("Found {0:N0} Images ({1}) in total.", 
+                mTotalImageCount, Separator.GetSizeString(mTotalImageBytes));
 
             mSearchStartTime = DateTime.Now;
             mLastTickTime = mSearchStartTime;
@@ -385,7 +432,6 @@ namespace ScreenshotFinder
                 Thread.Sleep(1000);
             }
 
-            Separator sep;
             int dupCount = 0;
             long dupBytes = 0;
 

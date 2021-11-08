@@ -44,6 +44,8 @@
             this.mFolderProgressTXT = new System.Windows.Forms.TextBox();
             this.mPauseBTN = new System.Windows.Forms.Button();
             this.mStopBTN = new System.Windows.Forms.Button();
+            this.mThreadPriorityCMB = new System.Windows.Forms.ComboBox();
+            this.mThreadPriorityLBL = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.mThreadCountNUD)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.mOutputSplitCont)).BeginInit();
             this.mOutputSplitCont.Panel1.SuspendLayout();
@@ -121,7 +123,7 @@
             // mGroupByLBL
             // 
             this.mGroupByLBL.AutoSize = true;
-            this.mGroupByLBL.Location = new System.Drawing.Point(13, 41);
+            this.mGroupByLBL.Location = new System.Drawing.Point(13, 44);
             this.mGroupByLBL.Name = "mGroupByLBL";
             this.mGroupByLBL.Size = new System.Drawing.Size(54, 13);
             this.mGroupByLBL.TabIndex = 12;
@@ -129,12 +131,13 @@
             // 
             // mGroupByCMB
             // 
+            this.mGroupByCMB.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.mGroupByCMB.FormattingEnabled = true;
             this.mGroupByCMB.Items.AddRange(new object[] {
             "All",
             "Codec",
             "Extension"});
-            this.mGroupByCMB.Location = new System.Drawing.Point(73, 38);
+            this.mGroupByCMB.Location = new System.Drawing.Point(73, 40);
             this.mGroupByCMB.Name = "mGroupByCMB";
             this.mGroupByCMB.Size = new System.Drawing.Size(121, 21);
             this.mGroupByCMB.TabIndex = 13;
@@ -143,7 +146,7 @@
             // mThreadCountLBL
             // 
             this.mThreadCountLBL.AutoSize = true;
-            this.mThreadCountLBL.Location = new System.Drawing.Point(200, 41);
+            this.mThreadCountLBL.Location = new System.Drawing.Point(200, 43);
             this.mThreadCountLBL.Name = "mThreadCountLBL";
             this.mThreadCountLBL.Size = new System.Drawing.Size(107, 13);
             this.mThreadCountLBL.TabIndex = 14;
@@ -151,7 +154,7 @@
             // 
             // mThreadCountNUD
             // 
-            this.mThreadCountNUD.Location = new System.Drawing.Point(313, 39);
+            this.mThreadCountNUD.Location = new System.Drawing.Point(313, 40);
             this.mThreadCountNUD.Maximum = new decimal(new int[] {
             16,
             0,
@@ -229,11 +232,38 @@
             this.mStopBTN.UseVisualStyleBackColor = true;
             this.mStopBTN.Click += new System.EventHandler(this.StopButtonClicked);
             // 
+            // mThreadPriorityCMB
+            // 
+            this.mThreadPriorityCMB.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.mThreadPriorityCMB.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.mThreadPriorityCMB.FormattingEnabled = true;
+            this.mThreadPriorityCMB.Items.AddRange(new object[] {
+            "Lower",
+            "Normal",
+            "Higher"});
+            this.mThreadPriorityCMB.Location = new System.Drawing.Point(489, 40);
+            this.mThreadPriorityCMB.Name = "mThreadPriorityCMB";
+            this.mThreadPriorityCMB.Size = new System.Drawing.Size(121, 21);
+            this.mThreadPriorityCMB.TabIndex = 19;
+            this.mThreadPriorityCMB.SelectedIndexChanged += new System.EventHandler(this.ThreadPriorityIndexChanged);
+            // 
+            // mThreadPriorityLBL
+            // 
+            this.mThreadPriorityLBL.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.mThreadPriorityLBL.AutoSize = true;
+            this.mThreadPriorityLBL.Location = new System.Drawing.Point(405, 44);
+            this.mThreadPriorityLBL.Name = "mThreadPriorityLBL";
+            this.mThreadPriorityLBL.Size = new System.Drawing.Size(78, 13);
+            this.mThreadPriorityLBL.TabIndex = 21;
+            this.mThreadPriorityLBL.Text = "Thread Priority:";
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(784, 561);
+            this.Controls.Add(this.mThreadPriorityLBL);
+            this.Controls.Add(this.mThreadPriorityCMB);
             this.Controls.Add(this.mStopBTN);
             this.Controls.Add(this.mPauseBTN);
             this.Controls.Add(this.mOutputSplitCont);
@@ -251,6 +281,7 @@
             this.Text = "Duplicate Screenshot Finder";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MainFormClosing);
             this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.MainFormClosed);
+            this.Load += new System.EventHandler(this.MainForm_Load);
             ((System.ComponentModel.ISupportInitialize)(this.mThreadCountNUD)).EndInit();
             this.mOutputSplitCont.Panel1.ResumeLayout(false);
             this.mOutputSplitCont.Panel1.PerformLayout();
@@ -280,6 +311,8 @@
         private System.Windows.Forms.TextBox mFolderProgressTXT;
         private System.Windows.Forms.Button mPauseBTN;
         private System.Windows.Forms.Button mStopBTN;
+        private System.Windows.Forms.ComboBox mThreadPriorityCMB;
+        private System.Windows.Forms.Label mThreadPriorityLBL;
     }
 }
 

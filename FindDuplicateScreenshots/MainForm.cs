@@ -21,8 +21,6 @@ namespace FindDuplicateScreenshots
 
         public const string DupDirSuffix = "-Duplicates";
 
-        public const ThreadPriority DefaultPriority = ThreadPriority.Normal;
-
         public enum GroupImgBy
         {
             All,
@@ -129,6 +127,7 @@ namespace FindDuplicateScreenshots
         private int mOutputVersion;
 
         private Thread mSearchThread;
+        private ThreadPriority mSearchPriority;
         private bool bCountRunning;
         private bool bSearchRunning;
         private bool bSearchPaused = false;
@@ -142,6 +141,7 @@ namespace FindDuplicateScreenshots
 
         // Total number of image files found.
         private int mTotalImageCount;
+        private long mTotalImageBytes;
         // Total number of image files processed.
         private int mCurrentProgress;
         // Total number of duplicate images found.
@@ -151,6 +151,7 @@ namespace FindDuplicateScreenshots
         private string mCurrentSearchFolder = "";
         private int mCurrentSearchIndex = 0;
         private int mCurrentSearchCount = 0;
+        private long mCurrentSearchBytes = 0L;
         private int mCurrentDupCount = 0;
         private long mCurrentDupBytes = 0L;
 
@@ -172,10 +173,15 @@ namespace FindDuplicateScreenshots
             mOutputVersion = mOutputWriter.GetVersion();
             Console.SetOut(mOutputWriter);
 
-            mSearchThread = new Thread(SearchForDuplicateImages)
-            {
-                Priority = DefaultPriority
-            };
+            mSearchThread = new Thread(SearchForDuplicateImages);
+            mSearchPriority = ThreadPriority.Normal;
+
+            ComboBox.ObjectCollection items = mThreadPriorityCMB.Items;
+            items.Clear();
+            items.Add("Lower");
+            items.Add("Normal");
+            items.Add("Higher");
+            mThreadPriorityCMB.SelectedIndex = 1;
 
             mRootDir = new DirectoryInfo(Environment.CurrentDirectory);
             UpdateDirectoryDisplay();
@@ -252,6 +258,35 @@ namespace FindDuplicateScreenshots
             mImageThreadCount = (int)mThreadCountNUD.Value;
         }
 
+        private void ThreadPriorityIndexChanged(object sender, EventArgs e)
+        {
+            switch (mThreadPriorityCMB.SelectedIndex)
+            {
+                case 0:
+                    mSearchPriority = ThreadPriority.BelowNormal;
+                    break;
+                case 1:
+                    mSearchPriority = ThreadPriority.Normal;
+                    break;
+                case 2:
+                    mSearchPriority = ThreadPriority.AboveNormal;
+                    break;
+            }
+            try
+            {
+                mSearchThread.Priority = mSearchPriority;
+            }
+            catch (ThreadStateException)
+            {
+                
+            }
+        }
+
+        private void MainForm_Load(object sender, EventArgs e)
+        {
+
+        }
+
         private void MainFormClosed(object sender, FormClosedEventArgs e)
         {
             bSearchStopped = true;
@@ -308,6 +343,8 @@ namespace FindDuplicateScreenshots
                 sb.Append(mDuplicateCount);
                 sb.Append(" ( ");
                 sb.Append(GetSizeString(mDuplicateBytes));
+                sb.Append(" / ");
+                sb.Append(GetSizeString(mTotalImageBytes));
                 sb.Append(" ) ( ");
                 percent = (double)mDuplicateCount / progress;
                 sb.Append(percent.ToString("P"));
@@ -328,6 +365,8 @@ namespace FindDuplicateScreenshots
                 sb.Append(mCurrentDupCount);
                 sb.Append(" ( ");
                 sb.Append(GetSizeString(mCurrentDupBytes));
+                sb.Append(" / ");
+                sb.Append(GetSizeString(mCurrentSearchBytes));
                 sb.Append(" ) ( ");
                 progress = mCurrentSearchIndex == 0 ? 1 : mCurrentSearchIndex;
                 percent = (double)mCurrentDupCount / progress;
@@ -380,6 +419,7 @@ namespace FindDuplicateScreenshots
             bNeedsUpdate = true;
 
             mTotalImageCount = 0;
+            mTotalImageBytes = 0L;
             mCurrentProgress = 0;
             CountTotalImages(mRootDir);
             WriteLog("Found {0} Screenshots in total.", mTotalImageCount);
@@ -420,7 +460,8 @@ namespace FindDuplicateScreenshots
                 return false;
             }
             WriteLog("Counting Screenshots in {0}...", currDir.Name);
-            int i, j, fCount;
+            long fBytes;
+            int i, j, k, fCount;
             ImgPattern patterns;
             string pattern;
             FileInfo[] files;
@@ -435,9 +476,16 @@ namespace FindDuplicateScreenshots
                     files = currDir.GetFiles(pattern,
                         SearchOption.TopDirectoryOnly);
                     fCount = files.Length;
-                    WriteLog("Found {0} {1} Screenshots!", fCount, pattern);
+                    fBytes = 0L;
+                    for (k = 0; k < fCount; k++)
+                    {
+                        fBytes += files[k].Length;
+                    }
+                    WriteLog("Found {0} {1} ({2}) Screenshots!", 
+                        fCount, pattern, GetSizeString(fBytes));
 
                     mTotalImageCount += fCount;
+                    mTotalImageBytes += fBytes;
 
                     if (bSearchStopped) break;
                 }
@@ -595,6 +643,7 @@ namespace FindDuplicateScreenshots
 
         private int SequesterCore(DirectoryInfo currDir, DirectoryInfo dupDir, FileInfo[] files)
         {
+            int k;
             int fileCount = files.Length;
             if (fileCount < 2)
             {
@@ -603,8 +652,13 @@ namespace FindDuplicateScreenshots
             mCurrentSearchFolder = currDir.Name;
             mCurrentSearchCount = fileCount;
             mCurrentSearchIndex = 0;
+            mCurrentSearchBytes = 0L;
             mCurrentDupCount = 0;
             mCurrentDupBytes = 0L;
+            for (k = 0; k < fileCount; k++)
+            {
+                mCurrentSearchBytes += files[k].Length;
+            }
 
             FileAttributes attr;
             DateTime cTime, mTime, aTime;
@@ -618,7 +672,7 @@ namespace FindDuplicateScreenshots
             DateTime startTime;
             int attempts, dupCount = 0;
             Bitmap currPic, lastPic = null;
-            for (int k = 0; !bSearchStopped && k < fileCount; k++)
+            for (k = 0; !bSearchStopped && k < fileCount; k++)
             {
                 while (bSearchPaused)
                 {
@@ -772,7 +826,8 @@ namespace FindDuplicateScreenshots
                         count++;
                         mod--;
                     }
-                    fractals[i] = new FractalSafe(lastScan, currScan, start, count);
+                    fractals[i] = new FractalSafe(lastScan, currScan, 
+                        start, count, mSearchPriority);
                     start += count;
                 }
                 bool allDone = false;
@@ -815,7 +870,8 @@ namespace FindDuplicateScreenshots
             public bool Done;
             public bool Different;
 
-            public FractalSafe(byte[] lastScan, byte[] currScan, int start, int count)
+            public FractalSafe(byte[] lastScan, byte[] currScan, 
+                int start, int count, ThreadPriority priority)
             {
                 mLastScan = lastScan;
                 mCurrScan = currScan;
@@ -826,7 +882,7 @@ namespace FindDuplicateScreenshots
                 Different = false;
                 mThread = new Thread(Compute)
                 {
-                    Priority = DefaultPriority
+                    Priority = priority
                 };
                 mThread.Start();
             }
@@ -924,7 +980,8 @@ namespace FindDuplicateScreenshots
                         count++;
                         mod--;
                     }
-                    fractals[i] = new FractalUnsafe(lastScan, currScan, start, count);
+                    fractals[i] = new FractalUnsafe(lastScan, currScan, 
+                        start, count, mSearchPriority);
                     start += count;
                 }
                 bool allDone = false;
@@ -967,7 +1024,8 @@ namespace FindDuplicateScreenshots
             public bool Done;
             public bool Different;
 
-            public FractalUnsafe(byte* lastScan, byte* currScan, int start, int count)
+            public FractalUnsafe(byte* lastScan, byte* currScan, 
+                int start, int count, ThreadPriority priority)
             {
                 mLastScan = lastScan;
                 mCurrScan = currScan;
@@ -978,7 +1036,7 @@ namespace FindDuplicateScreenshots
                 Different = false;
                 mThread = new Thread(Compute)
                 {
-                    Priority = DefaultPriority
+                    Priority = priority
                 };
                 mThread.Start();
             }
